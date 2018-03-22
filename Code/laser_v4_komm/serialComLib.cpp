@@ -8,7 +8,7 @@
  * ----------------------------------------------------------------------------
  */
 
-#include "wiring.h"
+#include "Arduino.h"
 #include "HardwareSerial.h"
 
 #include "serialComLib.h"
