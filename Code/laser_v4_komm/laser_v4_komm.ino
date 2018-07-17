@@ -14,8 +14,12 @@ unsigned char  cmdId;
 
 //Vars für digitale Pins: Hall, 2x Relais
 int hallPin = 2;
-int relaisAPin = 3;
-int relaisBPin = 4;
+int relaisAPin = 3; // Laser Freischalten 
+int relaisBPin = 4; // Ventilator
+
+int DigOut1 = 10; // ventilator power    
+int DigOut2 = 11; // laser power 
+
 
 //Vars für die LEDs
 int led_COMM = 9;
@@ -35,14 +39,17 @@ boolean relaisBOutput;
 //Kontostand (wird aus DB gelesen, vielleicht besser boolean?)
 char kontostand;
 
-void setup() 
+void setup()
 {
   pinMode(hallPin, INPUT);
   pinMode(relaisAPin, OUTPUT);
   pinMode(relaisBPin, OUTPUT);
   pinMode(schalterIn, INPUT);
 
-  pinMode(led_COMM, OUTPUT);  
+  pinMode(DigOut1, OUTPUT);
+  pinMode(DigOut2, OUTPUT);
+
+  pinMode(led_COMM, OUTPUT);
   pinMode(led_LID, OUTPUT);
   pinMode(led_HALL, OUTPUT);
   pinMode(led_VENT, OUTPUT);
@@ -55,80 +62,85 @@ void setup()
 }
 
 void loop()
-{ 
+{
   //Werte lesen, wenn Daten auf dem Serialport sind
   hallSensor = digitalRead(hallPin);
   schalterON = digitalRead(schalterIn);
 
   //Ventilator EIN, wenn Nullpunkt verlassen, sonst AUS
-  if(hallSensor > 0)
+  if (hallSensor > 0)
   {
-    digitalWrite(relaisBPin,HIGH);
-    digitalWrite(led_VENT,HIGH);
-    digitalWrite(led_HALL,HIGH);
+
+    digitalWrite(DigOut1, HIGH); // vent on
+    digitalWrite(relaisBPin, HIGH);
+    digitalWrite(led_VENT, HIGH);
+    digitalWrite(led_HALL, HIGH);
   }
   else
   {
-    digitalWrite(relaisBPin,LOW);
-    digitalWrite(led_VENT,LOW);
-    digitalWrite(led_HALL,LOW);
+    digitalWrite(DigOut1, LOW); // vent off
+    digitalWrite(relaisBPin, LOW);
+    digitalWrite(led_VENT, LOW);
+    digitalWrite(led_HALL, LOW);
   }
-  
-  if(comLib.available())
+
+  if (comLib.available())
   {
 
     //Daten von Serialport lesen
-    if(comLib.readCmd(&cmdId, &bufferLength, serialBuffer,BUFFER_LENGTH) != SerialComLib::Ok)
+    if (comLib.readCmd(&cmdId, &bufferLength, serialBuffer, BUFFER_LENGTH) != SerialComLib::Ok)
       return;
 
-    switch(cmdId)
+    switch (cmdId)
     {
-    case CMD_WRITE_DOUT:
-      digitalWrite(led_COMM,HIGH);
+      case CMD_WRITE_DOUT:
+        digitalWrite(led_COMM, HIGH);
 
-      switch(serialBuffer[0])
-      {
-      case 0:
-        //Signal an Relais A
-        digitalWrite(relaisAPin,serialBuffer[1]);
-        digitalWrite(led_LID,serialBuffer[1]);
+        switch (serialBuffer[0])
+        {
+          case 0:
+            //Signal an Relais A
+            digitalWrite(relaisAPin, serialBuffer[1]);
+            digitalWrite(led_LID, serialBuffer[1]);
+            digitalWrite(DigOut2, serialBuffer[1]); // laser power on/off
+            break;
+          case 1:
+          default:
+            //Signal an Relais B
+            digitalWrite(relaisBPin, serialBuffer[1]);
+            digitalWrite(led_VENT, serialBuffer[1]);
+            digitalWrite(DigOut1, serialBuffer[1]); // Vent power on/off
+            break;
+        }
         break;
-      case 1:
-      default:
-        //Signal an Relais B
-        digitalWrite(relaisBPin,serialBuffer[1]);
-        digitalWrite(led_VENT,serialBuffer[1]);
+
+      case CMD_READ_DIN:
+        digitalWrite(led_COMM, HIGH);
+
+        //Auslesen, was Hallsensor angibt (Laserkopf an Nullpunkt)
+        if (hallSensor == 0)
+        {
+          //Kommunikation mit Python, Laser ist am Nullpunkt
+          serialBuffer[0] = 1;
+          digitalWrite(led_HALL, HIGH);
+        }
+        else
+        {
+          //Kommunikation mit Python, Laser ist unterwegs
+          serialBuffer[0] = 0;
+          digitalWrite(led_HALL, LOW);
+        }
+        // send the command packet over serial
+        bufferLength = 1;
+
+        // write
+        comLib.writeCmd(CMD_READ_DIN, bufferLength, serialBuffer);
         break;
-      }
-      break;
-
-    case CMD_READ_DIN:
-      digitalWrite(led_COMM,HIGH);
-
-      //Auslesen, was Hallsensor angibt (Laserkopf an Nullpunkt)
-      if (hallSensor == 0)
-      {
-        //Kommunikation mit Python, Laser ist am Nullpunkt
-        serialBuffer[0] = 1;
-        digitalWrite(led_HALL,HIGH);
-      }
-      else
-      {
-        //Kommunikation mit Python, Laser ist unterwegs
-        serialBuffer[0] = 0;
-        digitalWrite(led_HALL,LOW);
-      }
-      // send the command packet over serial
-      bufferLength = 1;
-
-      // write 
-      comLib.writeCmd(CMD_READ_DIN, bufferLength, serialBuffer);
-      break;
     }
   }
   else
   {
-    digitalWrite(led_COMM,LOW);
+    digitalWrite(led_COMM, LOW);
   }
 }
 
