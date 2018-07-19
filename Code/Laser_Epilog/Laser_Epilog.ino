@@ -6,7 +6,7 @@
 #define  CMD_READ_DIN      2
 #define  BUFFER_LENGTH     32
 
-//Serial commu99nication
+//Serial communication
 SerialComLib   comLib;
 unsigned char  bufferLength;
 unsigned char  serialBuffer[BUFFER_LENGTH];
