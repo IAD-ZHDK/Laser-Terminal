@@ -64,6 +64,7 @@ void loop()
 
   if (comLib.available())
   {
+    lastSignal = millis();
     //Read data from Serial Port
     if (comLib.readCmd(&cmdId, &bufferLength, serialBuffer, BUFFER_LENGTH) != SerialComLib::Ok)
       return;
@@ -112,6 +113,3 @@ void loop()
     digitalWrite(LED_COMM, LOW);
   }
 }
-
-
-

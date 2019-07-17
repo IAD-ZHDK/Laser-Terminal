@@ -127,6 +127,3 @@ void loop()
     digitalWrite(LED_COMM, LOW);
   }
 }
-
-
-
