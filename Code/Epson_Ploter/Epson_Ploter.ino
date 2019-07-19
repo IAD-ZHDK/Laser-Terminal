@@ -13,7 +13,6 @@
 #define LED_PRINTING 8//  Print Head Moving
 #define LED_LOCK 6//  
 
-
 //Vars for serial communication
 
 #define  CMD_WRITE_DOUT    1
@@ -51,7 +50,6 @@ void setup()
 {
   pinMode(RELAY_A, OUTPUT);
   pinMode(RELAY_B, OUTPUT);
-  pinMode(LED_ACKTIV, OUTPUT);
   pinMode(LED_POWER, OUTPUT);
   pinMode(LED_PRINTING, OUTPUT);
   pinMode(LED_LOCK, OUTPUT);
