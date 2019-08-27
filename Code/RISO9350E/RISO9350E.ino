@@ -11,14 +11,11 @@
 
 #define LED 12 //
 
-// Checking for signal from Kiosk at intervalss
+// Checking for signal from Kiosk at interval
 
 unsigned long lastSignal = 0;
 
 const long intervals = 3000;
-
-
-
 
 
 //Vars for serial communication
@@ -39,21 +36,14 @@ unsigned char  cmdId;
 
 
 
-int copyValue = 0;
+int copyValue = HIGH;
 
-int copyThreshold = 200; // threshold for registering a change in the paper feed sensor
-
-int FeedSensorBase = 550; // The baseline measurement from feed sensor
+int lastCopyValue = 0;
+unsigned long copyTimer = 0; 
 
 int masterValue = 0;
-
 unsigned long masterTimer = 0;
-
 int masterDuration = 20000;
-
-
-
-boolean copyStart = false;
 
 boolean masterStart = false;
 
@@ -62,22 +52,6 @@ boolean masterStart = false;
 //boolean CopyFlag = false;
 
 boolean MasterFlag = false;
-
-// smoothing
-
-const int numReadings = 20;
-
-int readings[numReadings];
-
-int readIndex = 0;
-
-int total = 0;
-
-
-
-unsigned long startMillis;  //some global variables available anywhere in the program
-
-unsigned long currentMillis;
 
 
 
@@ -104,38 +78,27 @@ void setup()
 
 void loop()
 {
-  copyValue = analogRead(COPY_PIN);
+  copyValue = digitalRead(COPY_PIN);
   masterValue = digitalRead(MASTER_PIN);
 
-  copyValue = smooth(copyValue);
+  if (copyValue != lastCopyValue) {
+    copyTimer = millis();
+  }
 
-  int difference = abs(copyValue - FeedSensorBase);
-
-  //COPY
-
-  if (difference > copyThreshold && copyStart == false && timerGreaterThan(200))
-  {
-    copyStart = true;
+ if ((millis() - copyTimer) > 50) {
+    if (copyValue != lastCopyValue) {
+      lastCopyValue = copyValue;
+      if (copyValue == HIGH) {
+          // todo: If value stays fixed (ie sensor covered) then there will be no copies charged. This is very suseptable to hacking
+           serialBuffer[0] = 0;
+           comLib.writeCmd(CMD_READ_DIN, 1, serialBuffer);
+      }
+    }
   }
 
 
-
-  if (difference < copyThreshold && copyStart == true && timerGreaterThan(200))
-
-  {
-
-    copyStart = false;
-
-    //CopyFlag = true;
-
-    serialBuffer[0] = 0;
-
-    comLib.writeCmd(CMD_READ_DIN, 1, serialBuffer);
-
-  }
 
   //MASTER
-
   if (masterValue == 0 && masterStart == false)
 
   {
@@ -155,18 +118,11 @@ void loop()
     if (millis() - masterTimer > masterDuration)
 
     {
-
-
       MasterFlag = true;
-
       serialBuffer[0] = 1;
-
       comLib.writeCmd(CMD_READ_DIN, 1, serialBuffer);
-
       masterTimer = millis();
-
     }
-
   }
 
   // serial comminicatiion
@@ -177,7 +133,6 @@ void loop()
 
   if (comLib.available())
   {
-
     lastSignal = millis();
     if (comLib.readCmd(&cmdId, &bufferLength, serialBuffer, BUFFER_LENGTH) != SerialComLib::Ok) {
       return;
@@ -190,63 +145,4 @@ void loop()
     }
   }
   ///
-}
-
-
-
-boolean timerGreaterThan(int period) {
-
-  currentMillis = millis();
-  if (currentMillis - startMillis >= period)
-
-  {
-
-    startMillis = currentMillis;
-
-    return true;
-
-  } else {
-
-    return false;
-
-  }
-
-}
-
-
-
-int smooth(int NewReading) {
-
-  // subtract the last reading:
-
-  total = total - readings[readIndex];
-
-  // read from the sensor:
-
-  readings[readIndex] = NewReading;
-
-  // add the reading to the total:
-
-  total = total + readings[readIndex];
-
-  // advance to the next position in the array:
-
-  readIndex = readIndex + 1;
-
-  // if we're at the end of the array...
-
-  if (readIndex >= numReadings) {
-
-    // ...wrap around to the beginning:
-
-    readIndex = 0;
-
-  }
-
-  // calculate the average:
-
-  int average = total / numReadings;
-
-  return average;
-
 }
