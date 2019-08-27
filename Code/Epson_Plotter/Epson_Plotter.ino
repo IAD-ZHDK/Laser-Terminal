@@ -1,9 +1,7 @@
-
 #include "serialComLib.h"
 
 #define PRINTING_SENSOR A0 // Print Head Movement Sensor
 #define LOCK_PIN 12 // Key turn overide of kiosk
-
 #define RELAY_A 3 // NO- Relay pin output pin, HIGH for activated
 #define RELAY_B 4 // NC- Relay pin output pin, LOW for activated
 
@@ -19,11 +17,13 @@
 #define  CMD_READ_DIN      2
 #define  BUFFER_LENGTH     32
 
-// Checking for signal from Kiosk at intervalss
+#define  SENSOR_DEFAULT HIGH // this is for the case that the sensor values are inverted- 
+
+// Checking for signal from Kiosk at intervals
 
 unsigned long lastSignal = 0;
-
-const long kioskInterval = 3000;  // how long to wait before assuming kiosk is closed.
+const long kioskInterval = 15000;  // how long to wait before assuming kiosk is closed.
+// swift runns intervals slower on mac when the application is in the background. 
 
 boolean billing = true; // if the kiosk should charge or not
 //
@@ -36,13 +36,14 @@ unsigned char  bufferLength;
 unsigned char  serialBuffer[BUFFER_LENGTH];
 unsigned char  cmdId;
 int lastLockVal;
+bool activatedFlag = false;
 //
 //
 
 
 // Sensor debounceing
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 20000;    // amount of time before sensor picks up printing action
+unsigned long debounceDelay = 4000;    // amount of time before sensor picks up printing action
 int SensorState;             // the current reading from the input pin
 int lastSensorState = LOW;   // the previous reading from the input pin
 
@@ -71,14 +72,13 @@ void loop()
   unsigned long currentMillis = millis();
 
   // check if printer has been moving for period
-  if (sensor == HIGH) {
+  if (sensor == SENSOR_DEFAULT) {
     printing = true;
   } else {
     printing = false;
   }
 
   digitalWrite(LED_MACHINE_RUNNING, printing);
-
   if (comLib.available())
   {
     lastSignal = millis();
@@ -100,7 +100,6 @@ void loop()
             break;
         }
         break;
-
       case CMD_READ_DIN:
       if (billing) { //
         if (!printing)
@@ -111,7 +110,12 @@ void loop()
         else
         {
           //Comminicate with Kiosk that the print head is moving
-          serialBuffer[0] = 1;
+         // if (activatedFlag) { 
+          //   serialBuffer[0] = 0; // if the device was deactivated during print, then send a 0 on reactivation
+        //  } else {
+            serialBuffer[0] = 1;
+          //  }
+         // activatedFlag = false;
         }
       }
         // send the command packet over serial
@@ -128,13 +132,10 @@ void loop()
 
    // serial comminicatiion
   if (millis() - lastSignal >= kioskInterval) {
-    //turn off if there is no signal from Kiosk
-       //digitalWrite(LED_PRINTING, LOW);
        DeviceActivated = false;
   } else {
-    //digitalWrite(LED_PRINTING, HIGH);
-  }
 
+  }
   int lock = digitalRead(LOCK_PIN);
   if (lock == LOW) {
     digitalWrite(LED_LOCK, HIGH);
@@ -149,6 +150,7 @@ void loop()
   }
   lastLockVal = lock;
   activateDevice(DeviceActivated);
+  //delay(1); // for stability 
 }
 
 
@@ -156,6 +158,7 @@ int activateDevice(boolean val) {
   int  RelayAState = LOW;
   int  RelayBState = LOW;
   if (val == HIGH) {
+    activatedFlag = true;
     digitalWrite(LED_ACKTIV, HIGH);
     RelayAState =  HIGH;
     RelayBState = LOW;
@@ -168,13 +171,11 @@ int activateDevice(boolean val) {
   digitalWrite(RELAY_B, RelayBState);
 }
 
-
-int debounce(int NewReading) {
+int debounce(int NewReading) { // 
   if (NewReading != lastSensorState ) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
-
   if ((millis() - lastDebounceTime) > debounceDelay) {
     // whatever the reading is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:

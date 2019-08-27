@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2019-08-08T09:16:39Z",
+        "GenerationSoftware": {
+            "Application": "EAGLE",
+            "Vendor": "Autodesk",
+            "Version": "9.4.2"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 1.57,
+        "LayerNumber": 2,
+        "Name": {
+            "ProjectId": "Laser_Terminal"
+        },
+        "Owner": "Luke Franzke <luke.franzke@zhdk.ch>",
+        "Size": {
+            "X": 59,
+            "Y": 77
+        }
+    }
+}
