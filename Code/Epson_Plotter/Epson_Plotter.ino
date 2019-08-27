@@ -100,6 +100,7 @@ void loop()
             break;
         }
         break;
+
       case CMD_READ_DIN:
       if (billing) { //
         if (!printing)
