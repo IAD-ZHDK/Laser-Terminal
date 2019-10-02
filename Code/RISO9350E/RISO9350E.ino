@@ -38,7 +38,7 @@ unsigned char  cmdId;
 
 int copyValue = HIGH;
 
-int lastCopyValue = 0;
+int lastCopyValue = LOW;
 unsigned long copyTimer = 0; 
 
 int masterValue = 0;
@@ -58,18 +58,11 @@ boolean MasterFlag = false;
 void setup()
 {
 
-  pinMode(MASTER_PIN, INPUT_PULLUP);//pinMode(MASTER_PIN, INPUT); //MACHINE//TEST
-
+  pinMode(MASTER_PIN, INPUT_PULLUP);
   pinMode(HATCH_PIN, OUTPUT);
-
+  pinMode(COPY_PIN, INPUT);
   pinMode(LED, OUTPUT);
-
   pinMode(13, OUTPUT);
-
-  //Serial.begin(9600);
-
-  //Lib öffnen
-
   comLib.open();
 
 }
@@ -78,46 +71,34 @@ void setup()
 
 void loop()
 {
-  copyValue = digitalRead(COPY_PIN);
+  
+  int reading = digitalRead(COPY_PIN);
   masterValue = digitalRead(MASTER_PIN);
 
-  if (copyValue != lastCopyValue) {
+  if (reading != lastCopyValue) {
     copyTimer = millis();
   }
 
  if ((millis() - copyTimer) > 50) {
-    if (copyValue != lastCopyValue) {
-      lastCopyValue = copyValue;
+    if (reading != copyValue) {
+      copyValue = reading;
       if (copyValue == HIGH) {
-          // todo: If value stays fixed (ie sensor covered) then there will be no copies charged. This is very suseptable to hacking
+          // todo: If value stays fixed (ie sensor covered) then there will be no copies charged. Add timer to counter this
            serialBuffer[0] = 0;
            comLib.writeCmd(CMD_READ_DIN, 1, serialBuffer);
-      }
+      } 
     }
   }
-
-
-
+   lastCopyValue = reading;
+   
   //MASTER
-  if (masterValue == 0 && masterStart == false)
-
-  {
-
+  if (masterValue == 0 && masterStart == false) {
     masterStart = true;
-
   }
 
-
-
-  if (masterValue == 1 && masterStart == true)
-
-  {
-
+  if (masterValue == 1 && masterStart == true){
     masterStart = false;
-
-    if (millis() - masterTimer > masterDuration)
-
-    {
+    if (millis() - masterTimer > masterDuration) {
       MasterFlag = true;
       serialBuffer[0] = 1;
       comLib.writeCmd(CMD_READ_DIN, 1, serialBuffer);
@@ -137,11 +118,9 @@ void loop()
     if (comLib.readCmd(&cmdId, &bufferLength, serialBuffer, BUFFER_LENGTH) != SerialComLib::Ok) {
       return;
     }
-    //digitalWrite(LED, HIGH);
     if (cmdId == CMD_WRITE_DOUT && serialBuffer[0] == 0) {
-      //lastSignal = currentTime;
       digitalWrite(HATCH_PIN, serialBuffer[1]);
-      digitalWrite(LED, serialBuffer[1]);
+     digitalWrite(LED, serialBuffer[1]);
     }
   }
   ///

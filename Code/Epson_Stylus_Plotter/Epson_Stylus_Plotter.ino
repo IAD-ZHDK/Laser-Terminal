@@ -17,7 +17,7 @@
 #define  CMD_READ_DIN      2
 #define  BUFFER_LENGTH     32
 
-#define  SENSOR_DEFAULT HIGH // this is for the case that the sensor values are inverted- 
+#define  SENSOR_DEFAULT LOW // this is for the case that the sensor values are inverted- 
   
 // Checking for signal from Kiosk at intervals
 
@@ -54,9 +54,9 @@ void setup()
   pinMode(LED_POWER, OUTPUT);
   pinMode(LED_MACHINE_RUNNING, OUTPUT);
   pinMode(LED_LOCK, OUTPUT);
-   pinMode(LED_ACKTIV, OUTPUT);
+  pinMode(LED_ACKTIV, OUTPUT);
   pinMode(LOCK_PIN, INPUT_PULLUP);
-  pinMode(PRINTING_SENSOR, INPUT);
+  pinMode(PRINTING_SENSOR, INPUT_PULLUP);
   //Serial.begin(9600);
   comLib.open();
   digitalWrite(LED_POWER, HIGH);
